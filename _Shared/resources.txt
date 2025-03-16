@@ -1,0 +1,27 @@
+================================================================================
+File:   _Shared/resources.txt
+Author: TriaNaN
+Date:   March 16th, 2025
+Description:
+	Collection of links to resources and documentation
+	that have proven helpful while learning and playing
+	BitBurner.
+================================================================================
+RESOURCES & DOCUMENTATION FOR BITBURNER:
+
+TriaNaN ------------------------------------------------------------------------
+
+1. https://bitburner.readthedocs.io/en/latest/index.html
+
+2. https://github.com/bitburner-official/bitburner-src/tree/dev/markdown
+
+3. https://developer.mozilla.org/en-US/
+
+
+IneffablyAverage ---------------------------------------------------------------
+
+
+damonrobertgeelen --------------------------------------------------------------
+
+
+================================================================================
