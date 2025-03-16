@@ -1,0 +1,226 @@
+================================================================================
+FILE:   NearQUAD/architecture.txt
+AUTHOR: TriaNaN
+DESCRIPTION:
+  Documentation for NearQUAD toolset, from high-level overviews of the
+  functionality of the toolset as a whole, to overviews of the individual
+  modules/scripts it is composed of.
+
+--------------------------------------------------------------------------------
+
+CONTENTS:
+  [1]: Functionality of NearQUAD Toolset
+
+  [2]: Possible Architectures of Implementation
+     - Architecture 1: Remote execution of batch jobs on target server
+     - Architecture 2: Batch jobs run locally on host, targetting host
+
+  [3]: Batch Job Scheduler Design
+     - Overview
+     - Delay Calculations
+     - Thread Calculations
+
+
+
+================================================================================
+[1]: Functionality of NearQUAD Toolset
+
+  The NearQUAD Toolset is composed of a batch-job scheduler, which repeatedly
+  schedules the parallel execution of the hack.js, weaken.js, and grow.js
+  scripts as a batch.
+
+  The chosen high-level architecture of the toolset implementation is
+  'Architecture 1'[2]. During use, some servers will be designated as
+  offensive servers, which run as many instances of batchController.js
+  targetting adjacent servers as possible with their available RAM.
+  
+  The targetted server(s) must have local copies of all required batch scripts
+  (hack.js, weaken.js, and grow.js), which are then executed remotely by the
+  offensive server targetting them as batch jobs.
+
+
+
+================================================================================
+[2]: Possible Architectures of Implementation
+
+Architecture 1: Remote execution of batch jobs on target servers.
+
+  [A: batchController.js] ---exec--> [B: hack.js, weaken.js, grow.js]
+                          ---exec--> [C: hack.js, weaken.js, grow.js]
+                          ---exec--> [D: ...]
+
+PROS:
+- Preserves RAM on target server to allow for more threads for batch scripts,
+  increasing extraction rate from target server.
+- Batch script files don't necessarily need to exist on server running 
+  batchController.js, since they are remotely executed.
+- Uses fixed amount of RAM used from batchController.js on attacking server.
+- Multiple batchController instances could run on one system, targetting
+  multiple severs at once.
+
+CONS:
+- batchController.js must be constantly running on hosting server in order
+  to continue scheduling batch jobs on the target server; if
+  batchController.js is RAM-heavy, this may limit other scripts running on it.
+- Requires copying the batch scripts to the target system, and executing them
+  remotely.
+- The controller might require more RAM than one running scripts locally(?)
+- More difficult to implement as two servers need configuration.
+
+--------------------------------------------------------------------------------
+
+Architecture 2: Batch jobs run locally on host, targetting host.
+
+  [H: batchController.js ---run--> [hack.js, weaken.js, grow.js]]
+
+PROS:
+  - All scripts contained on one server.
+  - Toolset targets the host it is installed on; this simplifies deployment,
+    facilitating deployment by worms, crawlers, etc.
+  - batchController.js may have lighter RAM requirements if targetting host
+    server(?).
+
+CONS:
+  - batchController must be constantly running on host; limiting amount of
+    RAM available for batch scripts running on the same host. This will
+    result in a lower extraction rate on the host system compared to the
+    previous architecture.
+  - Entire toolset must be run on target system; may not be feasible for
+    servers with less than 8GB RAM.
+
+
+
+================================================================================
+[3]: Batch-Job Scheduler Design
+
+Overview:
+
+  Executing the hack.js, grow.js, and weaken.js scripts as batch jobs maximizes 
+  the money extraction rate on the target server(s); when the target server is
+  at maximum funds and minimum security, the batch-scheduler will run the batch
+  scripts concurrently, with delays when appropriate to ensure that all jobs
+  complete at roughly the same time.
+
+  The scheduler will also calculate the maximum number of threads it can
+  use on the target system for the batch scripts, further increasing profit.
+
+  Before enabling hacking of the target server, the scheduler should run
+  weaken.js and grow.js until the server is at the minimum security level
+  and maximum funds respectively; otherwise this may throw the timing off of
+  the batch scheduler due to changing the execution time of each script.
+
+--------------------------------------------------------------------------------
+
+Delay Calculations:
+
+  1: [-----------|||||||||||||||||||||||||||||||||---] -funds, +security
+       hDelay      running hack.js                  3*D(elay units)
+  2: [-||||||||||||||||||||||||||||||||||||||||||||--] -security
+       hwDelay     running weaken.js(1)             2*D
+  3: [--------||||||||||||||||||||||||||||||||||||||-] +funds, +security
+       gDelay      running grow.js                  1*D
+  4: [---||||||||||||||||||||||||||||||||||||||||||||] -security
+       gwDelay     running weaken.js(2)             0*D
+
+  In order to calculate each of the delays used before running each script,
+  the execution time of each script running on the target server must be
+  obtained, then used for the following calculations with the longest running
+  script time (weaken.js) as an 'anchor' value for the rest of the
+  calculations, as well as a configurable minimum unit of delay (D) > 20.00ms :
+
+    hDelay  = timeWeaken - timeHack - (3*D)
+
+    hwDelay = D
+
+    gDelay  = timeWeaken - timeGrow - D
+
+    gwDelay = 3*D
+
+  These calculated delays intend to ensure the batch jobs complete in HWGW
+  order, with a delay of D between finishing each script. Ideally the value
+  of D is as small as possible while maintaining performance.
+
+  The actual sequence of action should be:
+    1. wait hwDelay
+    2. launch weaken(1)
+    3. wait gwDelay - hwDelay
+    4. launch weaken(2)
+    5. wait gDelay - gwDelay - hwDelay
+    6. launch grow.js
+    7. wait hDelay - gDelay - gwDelay - hwDelay
+    8. launch hack.js
+  
+  The sequence in which the scripts finish would be:
+    hack, weaken(1), grow, weaken(2)
+
+  This hacks funds when security is at minimum and funds are at maximum; it
+  counteracts the increase in security from hacking by running an instance of
+  weaken.
+  
+  It then grows the funds again to the maximum, which is most effective
+  when security is at minimum, then again weakens the security to minimum
+  before the batch job starts again
+  
+  Delays are introduces before each script is run,
+  to ensure they both finish in the correct order, and with minimum delay
+  between each job finishing.
+
+--------------------------------------------------------------------------------
+
+Thread Calculations:
+
+  The number of threads allocated to the hack.js, weaken.js, and grow.js
+  scripts will be allocated in a manner intended to maximize RAM usage on
+  the target system, with a bias for more threads to the weaken.js scripts
+  to ensure security is kept at the minimum level to maximize the effectiveness
+  of the hack.js and grow.js scripts.
+
+  There will be a slight bias in favour of more threads for the grow.js script
+  in order to ensure funds are always at maximum when the hack.js script
+  finishes; all values should be anchored to a configurable T value for number
+  of hack threads, which can be calculated based on the amount of RAM available
+  on the target server.
+
+  hackThreads  = T
+
+  weak1Threads = ceiling(
+                    hackAnalyzeSecurity(hackThreads, target) /
+                    weakenAnalyze(1)
+                 )
+
+  growThreads  = ceiling(
+                    growthAnalyze(
+                      target,
+                      1 + hackAnalyze(target) * hackThreads)
+                  )
+
+  weak2Threads = ceiling(
+                    growthAnalyzeSecurity(growThreads, target) /
+                    weakenAnalyze(1)
+                 )
+
+  Note: weakenAnalyze(T) ~ (0.05 * T)
+
+  T-Calculation:
+    T is dependent on the available RAM on the target system, and the total RAM
+    used by hack.js, grow.js, and two instances of weaken.js. Say hack.js takes
+    1.70GB of RAM, and both grow.js and weaken.js each take 1.75GB of RAM:
+
+    availableRAM = Total RAM available on target system (e.g. 16GB)
+
+    scriptsRAM   = 1.70GB(hack) + 1.75GB(grow) + (2 * 1.75GB(weaken)) = 6.95GB
+
+    availableThreads = floor(availableRAM / ceiling(scriptsRAM / 4))
+
+    T = ...
+
+--------------------------------------------------------------------------------
+Grow-batches to compensate for hacked amount:
+
+batch-1              batch-2                  hack-batch (minSec, maxFunds)
+|------grow----------|------grow----------|...|------hack----------|
+|------weaken--------|------weaken--------|...|------weaken--------|
+
+
+================================================================================
+*END*

@@ -1,0 +1,8 @@
+- Clean up copies of REAPER.js and MISSIONARY.js
+  on networks adjacent to 'home'.
+
+- Plan out thread calculations for NearQUAD batch-scheduler
+  in architecture.txt.
+
+- Plan out server cracking function for gaining root access on servers, and how
+  copying batch script files to target servers will be implemented.
