@@ -1,0 +1,31 @@
+{
+  "base": "vs-dark",
+  "inherit": true,
+  "common": {
+    "accent": "FABD2F",
+    "bg": "1D2021",
+    "fg": "EBDBB2"
+  },
+  "syntax": {
+    "tag": "FB4934",
+    "entity": "FB4934",
+    "string": "B8BB26",
+    "regexp": "D3869B",
+    "markup": "83A598",
+    "keyword": "D65D0E",
+    "comment": "928374",
+    "constant": "8EC07C",
+    "error": "CC241D"
+  },
+  "ui": {
+    "line": "1D2021",
+    "panel": {
+      "bg": "282828",
+      "selected": "282828",
+      "border": "1D2021"
+    },
+    "selection": {
+      "bg": "FABD2F26"
+    }
+  }
+}
